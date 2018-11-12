@@ -1,0 +1,44 @@
+install.packages("jsonlite")
+library(jsonlite)
+library(data.table)
+library(dplyr)
+
+google.train <- read.csv("train.csv", sep = ',', header = TRUE)
+
+json_to_columns <- function(df, column){
+  column <- enquo(column)
+  
+  json_df <- df %>% 
+    pull(!!column) %>% 
+    paste(collapse = ",") %>% 
+    paste("[",.,"]") %>% 
+    fromJSON(flatten = TRUE)
+  
+  df %>% 
+    select(-!!column) %>% 
+    bind_cols(json_df)
+}
+
+#Convert to JSON objects
+google.train <- json_to_columns(google.train, device)
+google.train <- json_to_columns(google.train, geoNetwork)
+google.train <- json_to_columns(google.train, totals)
+google.train <- json_to_columns(google.train, trafficSource)
+
+google$fullVisitorId <- toString(google$fullVisitorId) #convert ID to string
+
+#Converting character types to intergers
+
+google$visits <- as.numeric(google$visits)
+google$hits <- as.numeric(google$hits)
+google$pageviews <- as.numeric(google$pageviews)
+google$bounces <- as.numeric(google$bounces)
+google$newVisits <- as.numeric(google$newVisits)
+
+#converting transactionRevenue
+google$transactionRevenue <- as.numeric(google$transactionRevenue)
+google$transactionRevenue[is.na(google$transactionRevenue)] <- 0
+
+#removing empty columns
+google <- select(google, -c(browserVersion,browserSize,operatingSystemVersion,mobileDeviceBranding,mobileDeviceModel,mobileInputSelector,mobileDeviceInfo,mobileDeviceMarketingName,flashVersion,language,screenColors,screenResolution,cityId,latitude,longitude,networkLocation,socialEngagementType))
+
